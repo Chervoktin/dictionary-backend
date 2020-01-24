@@ -51,6 +51,16 @@ class Card(models.Model):
     media = models.FileField(upload_to='examples/', verbose_name='Пример')
     scores = models.IntegerField()
 
+    def increment(self):
+        cardWordValues = CardWordValue.objects.filter(card = self)
+        for cardWordValue in cardWordValues:
+            wordValue = cardWordValue.wordValue
+            wordValue.scores = wordValue.scores + 1
+            wordValue.save()
+            self.scores += 1
+        self.save()
+            
+
 
     class Meta:
         verbose_name = 'Карточка'
