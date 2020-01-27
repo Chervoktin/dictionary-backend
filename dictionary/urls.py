@@ -4,5 +4,6 @@ from words.views import auth, getCards
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('auth/', auth),
     path('cards/', getCards)
 ]
