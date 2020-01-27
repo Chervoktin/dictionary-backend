@@ -27,6 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+JWT_KEY = "testKey"
 
 # Application definition
 
