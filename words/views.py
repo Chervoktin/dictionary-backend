@@ -36,3 +36,20 @@ def auth(request):
                 return JsonResponse({'errorMessage': 'User not found'}, status=404)
         else:
             return JsonResponse(userForm.errors, status=400)
+
+
+@csrf_exempt
+def getCards(request):
+    try:
+        encoded_jwt = request.META['HTTP_AUTHORIZATION']
+        user_id = jwt.decode(encoded_jwt, JWT_KEY, algorithms=['HS256'])['id']
+        time = jwt.decode(encoded_jwt, JWT_KEY, algorithms=['HS256'])['time']
+        time = datetime.strptime(time, '%Y-%m-%d %H:%M:%S.%f')
+        delta = datetime.now() - time
+        timeOfLife = timedelta(minutes=1)
+        if(delta > timeOfLife):
+            return JsonResponse({'error message': 'token expired'}, status=403)
+        else:
+            return JsonResponse(list(Card.objects.filter(user_id=user_id).values()), safe=False)
+    except:
+        return JsonResponse({'error message': 'invaild token'}, status=403)
