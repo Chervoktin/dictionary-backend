@@ -28,7 +28,9 @@ class Word(models.Model):
 
 class WordManager(models.Manager):
 
-    def getDictionary(self, cursor):
+    def execute(self, sql, params):
+        cursor = connection.cursor()
+        cursor.execute(sql, params)
         description = cursor.description
         columns = [col[0] for col in description]
         rows = [row for row in cursor.fetchall()]
@@ -45,9 +47,7 @@ class WordManager(models.Manager):
                inner join words_word
                on words_wordvalue.word_id = words_word.id
                '''
-        cursor = connection.cursor()
-        cursor.execute(sql, [card.id])
-        return self.getDictionary(cursor)
+        return self.execute(sql, [card.id])
 
 
 class WordValue(models.Model):
