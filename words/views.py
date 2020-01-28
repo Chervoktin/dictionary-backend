@@ -45,7 +45,7 @@ class JWTUser():
 
     def isExpired(self):
         delta = datetime.now() - self.time
-        timeOfLife = timedelta(minutes=1)
+        timeOfLife = timedelta(minutes=15)
         return delta > timeOfLife
 
     def isValid(self):
