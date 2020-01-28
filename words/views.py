@@ -5,7 +5,7 @@ import jwt
 from dictionary.settings import JWT_KEY
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from words.models import Card
+from words.models import Card, WordValue
 from django.contrib.auth.models import User
 from datetime import datetime, timedelta
 
@@ -71,6 +71,21 @@ def getCards(request):
         if not jwtUser.isExpired():
             user = jwtUser.getUser()
             return JsonResponse(list(Card.objects.filter(user=user).values()), safe=False)
+        else:
+            return JsonResponse({'error message': 'token expired'})
+    else:
+        return JsonResponse({'error message': 'token invaild'})
+
+@csrf_exempt
+def getWords(request, id):
+    jwtUser = JWTUser(request)
+    if jwtUser.isValid():
+        if not jwtUser.isExpired():
+            try:
+                card = Card.objects.get(id = id)
+            except:
+                return JsonResponse({'error message': 'card with id = ' + id + ' not found' }, status=404)
+            return JsonResponse(WordValue.words.getWordsOnCard(card), safe=False)
         else:
             return JsonResponse({'error message': 'token expired'})
     else:
