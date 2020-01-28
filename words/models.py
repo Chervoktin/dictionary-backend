@@ -3,30 +3,7 @@ from django.contrib.auth.models import User
 from django.db import connection
 
 
-class Value(models.Model):
-    value = models.CharField(max_length=50, verbose_name='Значение')
-
-    class Meta:
-        verbose_name = 'Значение'
-        verbose_name_plural = 'Значения'
-
-    def __str__(self):
-        return self.value
-
-
-class Word(models.Model):
-    word = models.CharField(max_length=70, verbose_name='Слово')
-    value = models.ManyToManyField(Value, through='WordValue')
-
-    def __str__(self):
-        return self.word
-
-    class Meta:
-        verbose_name = 'Слово'
-        verbose_name_plural = 'Слова'
-
-
-class WordManager(models.Manager):
+class PureSqlMixin():
 
     def execute(self, sql, params):
         cursor = connection.cursor()
@@ -36,7 +13,38 @@ class WordManager(models.Manager):
         rows = [row for row in cursor.fetchall()]
         return [dict(zip(columns, row)) for row in rows]
 
-    def all(self, card):
+
+class ValueManager(models.Manager, PureSqlMixin):
+
+    def all(self, word_id):
+        sql = '''select 
+                 words_value.id, words_value.value
+                 from words_value
+                 inner join words_wordvalue
+                 on words_value.id = words_wordvalue.value_id
+                 inner join words_word
+                 on words_wordvalue.word_id = words_word.id
+                 where words_word.id = %s
+               '''
+        return self.execute(sql, [word_id])
+
+
+class Value(models.Model):
+    value = models.CharField(max_length=50, verbose_name='Значение')
+    objects = models.Manager()
+    values = ValueManager()
+
+    class Meta:
+        verbose_name = 'Значение'
+        verbose_name_plural = 'Значения'
+
+    def __str__(self):
+        return self.value
+
+
+class WordManager(models.Manager, PureSqlMixin):
+
+    def all(self, card_id):
         sql = '''select 
                DISTINCT words_wordvalue.word_id as id,
                words_word.word
@@ -47,7 +55,24 @@ class WordManager(models.Manager):
                inner join words_word
                on words_wordvalue.word_id = words_word.id
                '''
-        return self.execute(sql, [card.id])
+        words = self.execute(sql, [card_id])
+        for word in words:
+            word['values'] = Value.values.all(word['id'])
+        return words
+
+
+class Word(models.Model):
+    word = models.CharField(max_length=70, verbose_name='Слово')
+    value = models.ManyToManyField(Value, through='WordValue')
+    objects = models.Manager()
+    words = WordManager()
+
+    def __str__(self):
+        return self.word
+
+    class Meta:
+        verbose_name = 'Слово'
+        verbose_name_plural = 'Слова'
 
 
 class WordValue(models.Model):
@@ -56,7 +81,6 @@ class WordValue(models.Model):
     value = models.ForeignKey(
         Value, on_delete=models.CASCADE, verbose_name='Значение')
     scores = models.IntegerField()
-    words = WordManager()
 
     class Meta:
         verbose_name = 'Слово со значением'
