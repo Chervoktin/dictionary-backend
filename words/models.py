@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db import connection
 
 
 class Value(models.Model):
@@ -25,13 +26,37 @@ class Word(models.Model):
         verbose_name_plural = 'Слова'
 
 
+class WordManager(models.Manager):
+
+    def getDictionary(self, cursor):
+        description = cursor.description
+        columns = [col[0] for col in description]
+        rows = [row for row in cursor.fetchall()]
+        return [dict(zip(columns, row)) for row in rows]
+
+    def all(self, card):
+        sql = '''select 
+               DISTINCT words_wordvalue.word_id as id,
+               words_word.word
+               from words_cardwordvalue
+               inner join words_wordvalue
+               on words_wordvalue.id = words_cardwordvalue.wordValue_id AND
+               words_cardwordvalue.card_id = %s
+               inner join words_word
+               on words_wordvalue.word_id = words_word.id
+               '''
+        cursor = connection.cursor()
+        cursor.execute(sql, [card.id])
+        return self.getDictionary(cursor)
+
+
 class WordValue(models.Model):
     word = models.ForeignKey(
         Word, on_delete=models.CASCADE, verbose_name='Слово')
     value = models.ForeignKey(
         Value, on_delete=models.CASCADE, verbose_name='Значение')
     scores = models.IntegerField()
-
+    words = WordManager()
 
     class Meta:
         verbose_name = 'Слово со значением'
@@ -39,7 +64,6 @@ class WordValue(models.Model):
 
     def __str__(self):
         return self.word.word + ' - ' + self.value.value
-
 
 
 class Card(models.Model):
@@ -52,15 +76,13 @@ class Card(models.Model):
     scores = models.IntegerField()
 
     def increment(self):
-        cardWordValues = CardWordValue.objects.filter(card = self)
+        cardWordValues = CardWordValue.objects.filter(card=self)
         for cardWordValue in cardWordValues:
             wordValue = cardWordValue.wordValue
             wordValue.scores = wordValue.scores + 1
             wordValue.save()
             self.scores += 1
         self.save()
-            
-
 
     class Meta:
         verbose_name = 'Карточка'
