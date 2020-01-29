@@ -11,7 +11,9 @@ class PureSqlMixin():
         description = cursor.description
         columns = [col[0] for col in description]
         rows = [row for row in cursor.fetchall()]
+        cursor.close()
         return [dict(zip(columns, row)) for row in rows]
+        
 
 
 class ValueManager(models.Manager, PureSqlMixin):
@@ -59,6 +61,32 @@ class WordManager(models.Manager, PureSqlMixin):
         for word in words:
             word['values'] = Value.values.all(word['id'])
         return words
+
+    def getOnId(self, word_id):
+        sql = '''select * from words_word 
+                where words_word.id = %s'''
+        word = self.execute(sql, [word_id])[0]
+        sql = '''select words_wordvalue.id, words_value.value 
+                from words_wordvalue
+                inner join words_value
+                on words_wordvalue.value_id = words_value.id and 
+                words_wordvalue.word_id = %s'''
+        values = self.execute(sql,[word_id])
+        word['values'] = values
+        return word
+
+    def getOnWord(self, word):
+        sql = '''select * from words_word 
+                where words_word.word= %s'''
+        word = self.execute(sql, [word])[0]
+        sql = '''select words_wordvalue.id, words_value.value 
+                from words_wordvalue
+                inner join words_value
+                on words_wordvalue.value_id = words_value.id and 
+                words_wordvalue.word_id = %s'''
+        values = self.execute(sql,[word['id']])
+        word['values'] = values
+        return word
 
 
 class Word(models.Model):
@@ -117,12 +145,12 @@ class Card(models.Model):
 
 
 class CardWordValue(models.Model):
-    card = models.ForeignKey(Card, on_delete=models.DO_NOTHING)
-    wordValue = models.ForeignKey(WordValue, on_delete=models.DO_NOTHING)
+    card = models.ForeignKey(Card, on_delete=models.CASCADE)
+    wordValue = models.ForeignKey(WordValue, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.wordValue.word.word + ' - ' + self.wordValue.value.value
 
     class Meta:
-        verbose_name = 'Слово со значением'
-        verbose_name_plural = 'Слова со значением'
+        verbose_name = 'Слово со значением в карточке'
+        verbose_name_plural = 'Слова со значением в карточках'
