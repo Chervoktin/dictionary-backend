@@ -94,3 +94,12 @@ class WordsView(JWTMixin, View):
             return JsonResponse({'error message': 'card with id = ' + id + ' not found'}, status=404)
         return JsonResponse(Word.words.all(card.id), safe=False)
 
+class WordView(JWTMixin, View):
+    
+    def get(self,request, id):
+        try:
+            word = Word.words.getOnId(id)
+        except:
+            return JsonResponse({'error message': 'word with id = ' + id + ' not found'}, status=404)
+        return JsonResponse(word, safe = False)
+
