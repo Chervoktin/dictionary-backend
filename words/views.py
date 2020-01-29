@@ -103,3 +103,12 @@ class WordView(JWTMixin, View):
             return JsonResponse({'error message': 'word with id = ' + id + ' not found'}, status=404)
         return JsonResponse(word, safe = False)
 
+class WordViewFind(JWTMixin, View):
+    
+    def get(self,request, id):
+        try:
+            word = Word.words.getOnWord(id)
+        except:
+            return JsonResponse({'error message': 'word with id = ' + id + ' not found'}, status=404)
+        return JsonResponse(word, safe = False)
+
