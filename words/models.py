@@ -14,143 +14,43 @@ class PureSqlMixin():
         cursor.close()
         return [dict(zip(columns, row)) for row in rows]
         
-
-
-class ValueManager(models.Manager, PureSqlMixin):
-
-    def all(self, word_id):
-        sql = '''select 
-                 words_value.id, words_value.value
-                 from words_value
-                 inner join words_wordvalue
-                 on words_value.id = words_wordvalue.value_id
-                 inner join words_word
-                 on words_wordvalue.word_id = words_word.id
-                 where words_word.id = %s
-               '''
-        return self.execute(sql, [word_id])
-
-
-class Value(models.Model):
-    value = models.CharField(max_length=50, verbose_name='Значение')
-    objects = models.Manager()
-    values = ValueManager()
-
-    class Meta:
-        verbose_name = 'Значение'
-        verbose_name_plural = 'Значения'
-
-    def __str__(self):
-        return self.value
-
-
-class WordManager(models.Manager, PureSqlMixin):
-
-    def all(self, card_id):
-        sql = '''select 
-               DISTINCT words_wordvalue.word_id as id,
-               words_word.word
-               from words_cardwordvalue
-               inner join words_wordvalue
-               on words_wordvalue.id = words_cardwordvalue.wordValue_id AND
-               words_cardwordvalue.card_id = %s
-               inner join words_word
-               on words_wordvalue.word_id = words_word.id
-               '''
-        words = self.execute(sql, [card_id])
-        for word in words:
-            word['values'] = Value.values.all(word['id'])
-        return words
-
-    def getOnId(self, word_id):
-        sql = '''select * from words_word 
-                where words_word.id = %s'''
-        word = self.execute(sql, [word_id])[0]
-        sql = '''select words_wordvalue.id, words_value.value 
-                from words_wordvalue
-                inner join words_value
-                on words_wordvalue.value_id = words_value.id and 
-                words_wordvalue.word_id = %s'''
-        values = self.execute(sql,[word_id])
-        word['values'] = values
-        return word
-
-    def getOnWord(self, word):
-        sql = '''select * from words_word 
-                where words_word.word= %s'''
-        word = self.execute(sql, [word])[0]
-        sql = '''select words_wordvalue.id, words_value.value 
-                from words_wordvalue
-                inner join words_value
-                on words_wordvalue.value_id = words_value.id and 
-                words_wordvalue.word_id = %s'''
-        values = self.execute(sql,[word['id']])
-        word['values'] = values
-        return word
-
-
 class Word(models.Model):
-    word = models.CharField(max_length=70, verbose_name='Слово')
-    value = models.ManyToManyField(Value, through='WordValue')
-    objects = models.Manager()
-    words = WordManager()
-
-    def __str__(self):
-        return self.word
+    word = models.CharField(max_length=100)
+    translations = models.ManyToManyField('Translation', through='WordWithTranslation')
 
     class Meta:
         verbose_name = 'Слово'
         verbose_name_plural = 'Слова'
 
-
-class WordValue(models.Model):
-    word = models.ForeignKey(
-        Word, on_delete=models.CASCADE, verbose_name='Слово')
-    value = models.ForeignKey(
-        Value, on_delete=models.CASCADE, verbose_name='Значение')
-    scores = models.IntegerField()
-
+class Translation(models.Model):
+    translation = models.CharField(max_length=100)
+    
     class Meta:
-        verbose_name = 'Слово со значением'
-        verbose_name_plural = 'Слова со значением'
+        verbose_name = 'Перевол'
+        verbose_name = 'Переводы'
 
-    def __str__(self):
-        return self.word.word + ' - ' + self.value.value
+class WordWithTranslation(models.Model):
+    word = models.ForeignKey('Word', on_delete=models.CASCADE)
+    translation = models.ForeignKey('Translation', on_delete=models.CASCADE)
+    scores = models.IntegerField(default=0)
+
+class WordsWithCard(models.Model):
+    card = models.ForeignKey('Card', on_delete=models.CASCADE)
+    word = models.ForeignKey('Word', on_delete=models.CASCADE)
 
 
 class Card(models.Model):
-    user = models.ForeignKey(
-        User, on_delete=models.DO_NOTHING, verbose_name='Пользователь')
-    phrase = models.CharField(max_length=100, verbose_name='Фраза')
-    wordValue = models.ManyToManyField(
-        WordValue, verbose_name='Слово', through='CardWordValue')
-    media = models.FileField(upload_to='examples/', verbose_name='Пример')
-    scores = models.IntegerField()
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING)
+    phrase = models.CharField(max_length=200)
+    example = models.FileField(upload_to='examples/')
+    scores = models.IntegerField(default=0)
+    word = models.ManyToManyField('Word', through='WordsWithCard')
+    
 
-    def increment(self):
-        cardWordValues = CardWordValue.objects.filter(card=self)
-        for cardWordValue in cardWordValues:
-            wordValue = cardWordValue.wordValue
-            wordValue.scores = wordValue.scores + 1
-            wordValue.save()
-            self.scores += 1
-        self.save()
-
-    class Meta:
-        verbose_name = 'Карточка'
-        verbose_name_plural = 'Карточки'
-
-    def __str__(self):
-        return self.phrase
+class TranslationForWordsWithCard(models.Model):
+    wordWithCard = models.ForeignKey('WordsWithcard',on_delete=models.CASCADE)
+    wordWithTranslation = models.ForeignKey('WordWithTranslation', on_delete=models.CASCADE)
 
 
-class CardWordValue(models.Model):
-    card = models.ForeignKey(Card, on_delete=models.CASCADE)
-    wordValue = models.ForeignKey(WordValue, on_delete=models.CASCADE)
 
-    def __str__(self):
-        return self.wordValue.word.word + ' - ' + self.wordValue.value.value
 
-    class Meta:
-        verbose_name = 'Слово со значением в карточке'
-        verbose_name_plural = 'Слова со значением в карточках'
