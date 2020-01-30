@@ -5,11 +5,12 @@ import jwt
 from dictionary.settings import JWT_KEY
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from words.models import Card, Word
+from words.models import *
 from django.contrib.auth.models import User
 from datetime import datetime, timedelta
 from django.views.generic import View
-
+from django.forms import ModelForm
+from django.utils.decorators import method_decorator
 
 class UserForm(forms.Form):
     username = forms.CharField(max_length=100)
@@ -46,7 +47,7 @@ class JWTUser():
 
     def isExpired(self):
         delta = datetime.now() - self.time
-        timeOfLife = timedelta(minutes=15)
+        timeOfLife = timedelta(minutes=900)
         return delta > timeOfLife
 
     def isValid(self):
@@ -72,43 +73,30 @@ class JWTMixin():
             if not self.jwtUser.isExpired():
                 return super().dispatch(request,*args, **kwargs)
             else:
-                return JsonResponse({'error message': 'token expired'})
+                return JsonResponse({'error message': 'token expired'},status = 419)
         else:
-            return JsonResponse({'error message': 'token invaild'})
+            return JsonResponse({'error message': 'token invaild'}, status=403)
 
     def get_user(self):
         return self.jwtUser.getUser()
 
-class CardsView(JWTMixin, View):
+class CardForm(ModelForm):
+    class Meta:
+        model = Card
+        exclude =  ['user','scores', 'word']
 
-    def get(self,request):
-        user = self.jwtUser.getUser()
-        return JsonResponse(list(Card.objects.filter(user=user).values()), safe=False)
+@method_decorator(csrf_exempt, name='dispatch')
+class CardView(JWTMixin, View):
 
-class WordsView(JWTMixin, View):
+    def post(self, request):
+        cardForm = CardForm(request.POST,request.FILES)
+        if cardForm.is_valid():
+            card = cardForm.save(commit= False)
+            card.user = self.get_user()
+            card.save()
+            return HttpResponse(status=201)
+        else:
+            return JsonResponse(cardForm.errors)
 
-    def get(self, request, id):
-        try:
-            card = Card.objects.get(id=id)
-        except:
-            return JsonResponse({'error message': 'card with id = ' + id + ' not found'}, status=404)
-        return JsonResponse(Word.words.all(card.id), safe=False)
-
-class WordView(JWTMixin, View):
-    
-    def get(self,request, id):
-        try:
-            word = Word.words.getOnId(id)
-        except:
-            return JsonResponse({'error message': 'word with id = ' + id + ' not found'}, status=404)
-        return JsonResponse(word, safe = False)
-
-class WordViewFind(JWTMixin, View):
-    
-    def get(self,request, id):
-        try:
-            word = Word.words.getOnWord(id)
-        except:
-            return JsonResponse({'error message': 'word with id = ' + id + ' not found'}, status=404)
-        return JsonResponse(word, safe = False)
-
+    def get(self, request):
+        return HttpResponse("", status = 404)
