@@ -1,6 +1,5 @@
 var cors = require("cors");
 var express = require("express");
-const { endianness } = require("os");
 var app = express();
 
 
@@ -32,7 +31,6 @@ class SentenceStorgae {
     }
 
     insert(stringOfSentence) {
-        debugger;
         let objectOfSentence = {
             id: this.idSentencesIncrement++,
             sentence: stringOfSentence,
@@ -43,38 +41,68 @@ class SentenceStorgae {
 
         let objectOfWord = null;
         stringsOfwords.forEach(stringOfWord => {
-            this.bindSentenceToWord(stringOfWord, objectOfSentence); // к каждому объекту word из массива words добавляем ссылку на sentence
+            // к каждому объекту word из массива words добавляем ссылку на sentence
+            this.bindSentenceToWord(stringOfWord, objectOfSentence);
         });
+
+        return objectOfSentence.id;
     }
     select(count) {
         this.sentences.sort((a, b) => {
             return a.scores - b.scores;
         })
-        return this.sentences.slice(0,count);
+        return this.sentences.slice(0, count);
+    }
+
+    getById(id) {
+        let findingSentence = null;
+        this.sentences.forEach(sentence => {
+            if (sentence.id == id) {
+                findingSentence = sentence;
+            }
+        })
+        return findingSentence;
     }
 }
 
 let storage = new SentenceStorgae();
+
 const corsOptions = {
     origin: "*", // домен сервиса, с которого будут приниматься запросы
     optionsSuccessStatus: 200, // для старых браузеров
 };
+
 app.use(cors(corsOptions));
 app.use(express.json()); // для парсинга application/json
 
 app.post('/sentence', function (req, res) {
-    
-    storage.insert(req.body.sentence);
-    res.status(200);
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.end(JSON.stringify([{ status: "ok" }]));
+    let id = storage.insert(req.body.sentence);
+    res.status(201);
+    res.setHeader("Location", "/sentence/" + id)
+    res.end();
 })
 
-app.get('/', function(req, res){
+app.get('/', function (req, res) {
+    res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify(storage.sentences));
 })
 
+app.get('/sentence/:id', function (req, res) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    let sentence = storage.getById(req.params.id);
+    if (sentence === null) {
+        res.status(404);
+        res.end();
+    } else {
+        res.status(200);
+        res.end(JSON.stringify(sentence));
+    }
+})
+
 app.listen(3000, function () {
-console.log("Example app listening on port 3000!");
- });
+    console.log("Example app listening on port 3000!");
+});
+
+
+module.exports.SentenceStorgae = SentenceStorgae;
