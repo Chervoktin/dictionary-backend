@@ -98,18 +98,28 @@ class SentenceStorgae {
 
     progress(id) {
         let objectOfSentence = this.getById(id);
-        let words = objectOfSentence.sentence.split(" ");
-        words.forEach(stringOfWord => {
-            this._progressForWord(stringOfWord);
-        })
+        if (objectOfSentence !== null) {
+            let words = objectOfSentence.sentence.split(" ");
+            words.forEach(stringOfWord => {
+                this._progressForWord(stringOfWord);
+            });
+            return true;
+        } else {
+            return false;
+        }
     }
 
     regress(id) {
         let objectOfSentence = this.getById(id);
-        let words = objectOfSentence.sentence.split(" ");
-        words.forEach(stringOfWord => {
-            this._regressForWord(stringOfWord);
-        })
+        if (objectOfSentence !== null) {
+            let words = objectOfSentence.sentence.split(" ");
+            words.forEach(stringOfWord => {
+                this._regressForWord(stringOfWord);
+            });
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 
@@ -127,6 +137,28 @@ app.post('/sentence', function (req, res) {
     let id = storage.insert(req.body.sentence);
     res.status(201);
     res.setHeader("Location", "/sentence/" + id)
+    res.end();
+})
+
+app.post('/progress/:id', function (req, res) {
+    let result = storage.progress(req.params.id)
+    if (result) {
+        res.status(201);
+    } else {
+        res.status(404);
+    }
+    res.setHeader("Location", "/sentence/" + req.params.id)
+    res.end();
+})
+
+app.post('/regress/:id', function (req, res) {
+    if (storage.regress(req.params.id)) {
+        res.status(201);
+    } else {
+        res.status(404);
+    }
+    res.status(201);
+    res.setHeader("Location", "/sentence/" + req.params.id)
     res.end();
 })
 
