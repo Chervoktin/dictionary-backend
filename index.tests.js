@@ -89,3 +89,15 @@ it("should decrement scores when scores = 0", function () {
     }
     
 });
+
+it("should return null", function () {
+    let storage = new app.SentenceStorgae();
+    let id = storage.insert("the war was lost");
+    let result = storage.getById(5);
+    let expectedResult = null;
+
+    if (result !== expectedResult ) {
+        throw new Error(`Expected ${expectedResult}, but got ${result}`);
+    }
+    
+});
