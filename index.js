@@ -4,14 +4,16 @@ var app = express();
 
 
 class SentenceStorgae {
+    idSentencesIncrement = 0;
+    idWordsIncrement = 0;
+    sentences = [];
+    words = [];
+
     constructor() {
-        this.idSentencesIncrement = 0;
-        this.idWordsIncrement = 0;
-        this.sentences = [];
-        this.words = [];
+
     }
 
-    bindSentenceToWord(stringOfword, objectOfSentence) {
+    _bindSentenceToWord(stringOfword, objectOfSentence) {
         let binded = false;
         this.words.forEach(objectOfWord => {
             if (objectOfWord.word === stringOfword) {
@@ -42,7 +44,7 @@ class SentenceStorgae {
         let objectOfWord = null;
         stringsOfwords.forEach(stringOfWord => {
             // к каждому объекту word из массива words добавляем ссылку на sentence
-            this.bindSentenceToWord(stringOfWord, objectOfSentence);
+            this._bindSentenceToWord(stringOfWord, objectOfSentence);
         });
 
         return objectOfSentence.id;
@@ -62,6 +64,52 @@ class SentenceStorgae {
             }
         })
         return findingSentence;
+    }
+
+    _progressForWord(stringOfWord) {
+        this.words.forEach(word => {
+            if (word.word === stringOfWord) {
+                word.scores += 1;
+                word.sentences.forEach(sentence => {
+                    sentence.scores += 1;
+                })
+            }
+        })
+    }
+
+    _decrementScores(word) {
+        if (word.scores > 0) {
+            word.scores -= 1;
+        }
+        word.sentences.forEach(sentence => {
+            if (sentence.scores > 0) {
+                sentence.scores -= 1;
+            }
+        });
+    }
+
+    _regressForWord(stringOfWord) {
+        this.words.forEach(word => {
+            if (word.word === stringOfWord) {
+                this._decrementScores(word);
+            }
+        })
+    }
+
+    progress(id) {
+        let objectOfSentence = this.getById(id);
+        let words = objectOfSentence.sentence.split(" ");
+        words.forEach(stringOfWord => {
+            this._progressForWord(stringOfWord);
+        })
+    }
+
+    regress(id) {
+        let objectOfSentence = this.getById(id);
+        let words = objectOfSentence.sentence.split(" ");
+        words.forEach(stringOfWord => {
+            this._regressForWord(stringOfWord);
+        })
     }
 }
 
