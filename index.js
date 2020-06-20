@@ -1,16 +1,22 @@
 var cors = require("cors");
 var express = require("express");
 var app = express();
-
+var multer = require("multer");
+const upload = multer({dest: "uploads/"});
+var fs = require("fs");
 
 class SentenceStorgae {
     idSentencesIncrement = 0;
     idWordsIncrement = 0;
+
     sentences = [];
     words = [];
 
     constructor() {
-
+        let fileContent = fs.readFileSync("sentences.json", "utf8");
+        this.sentences = JSON.parse(fileContent);
+        fileContent = fs.readFileSync("words.json", "utf8");
+        this.words = JSON.parse(fileContent);
     }
 
     _bindSentenceToWord(stringOfword, objectOfSentence) {
@@ -32,10 +38,11 @@ class SentenceStorgae {
         }
     }
 
-    insert(stringOfSentence) {
+    insert(stringOfSentence, fileName) {
         let objectOfSentence = {
             id: this.idSentencesIncrement++,
             sentence: stringOfSentence,
+            fileName: fileName,
             scores: 0
         };
         this.sentences.push(objectOfSentence); // 
@@ -125,18 +132,22 @@ class SentenceStorgae {
 
 let storage = new SentenceStorgae();
 
+
 const corsOptions = {
     origin: "*", // домен сервиса, с которого будут приниматься запросы
     optionsSuccessStatus: 200, // для старых браузеров
 };
 
 app.use(cors(corsOptions));
-app.use(express.json()); // для парсинга application/json
+app.use(express.json())
+app.use(express.urlencoded({extended: false}))
 
-app.post('/sentence', function (req, res) {
-    let id = storage.insert(req.body.sentence);
+app.post('/sentence', upload.single('example'), function (req, res) {
+    console.log(req.file);
+    console.log(req.body.sentence);
+    //let id = storage.insert(req.body.sentence, req.body.example);
     res.status(201);
-    res.setHeader("Location", "/sentence/" + id)
+  //  res.setHeader("Location", "/sentence/" + id)
     res.end();
 })
 
@@ -151,6 +162,10 @@ app.post('/progress/:id', function (req, res) {
     res.end();
 })
 
+app.get("/example/:id", function (req, res) {
+    res.sendFile("examples/" + req.params.id, { root: __dirname });
+});
+
 app.post('/regress/:id', function (req, res) {
     if (storage.regress(req.params.id)) {
         res.status(201);
@@ -162,9 +177,9 @@ app.post('/regress/:id', function (req, res) {
     res.end();
 })
 
-app.get('/', function (req, res) {
+app.get('/training/:count', function (req, res) {
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify(storage.sentences));
+    res.end(JSON.stringify(storage.select(req.params.count)));
 })
 
 app.get('/sentence/:id', function (req, res) {
@@ -179,6 +194,13 @@ app.get('/sentence/:id', function (req, res) {
         res.end(JSON.stringify(sentence));
     }
 })
+
+process.on('SIGINT', function () {
+    console.log("Caught interrupt signal");
+    fs.writeFileSync("sentences.json", JSON.stringify(storage.sentences));
+    fs.writeFileSync("words.json", JSON.stringify(storage.words));
+    process.exit();
+});
 
 app.listen(3000, function () {
     console.log("Example app listening on port 3000!");
