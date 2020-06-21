@@ -3,6 +3,7 @@ var express = require("express");
 var app = express();
 var multer = require("multer");
 var fs = require("fs");
+const { throws } = require("assert");
 
 var str = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -24,10 +25,17 @@ class SentenceStorgae {
     words = [];
 
     constructor() {
-        let fileContent = fs.readFileSync("sentences.json", "utf8");
-        this.sentences = JSON.parse(fileContent);
-        fileContent = fs.readFileSync("words.json", "utf8");
-        this.words = JSON.parse(fileContent);
+         if(this.sentences.length === 0){
+             this.idSentencesIncrement = 0;
+         }    else{
+             this.idSentencesIncrement = this.sentences[this.sentences.length-1].id + 1;
+         }
+
+         if(this.words.length === 0){
+            this.idWordsIncrement = 0;
+        }    else{
+            this.idWordsIncrement = this.words[this.words.length-1].id + 1;
+        }
     }
 
     _findWord(word) {
@@ -40,12 +48,13 @@ class SentenceStorgae {
         return findingWord;
     }
 
-    insert(stringOfSentence, fileName) {
+    insert(stringOfSentence, fileName, translation) {
         let objectOfSentence = {
             id: this.idSentencesIncrement++,
             sentence: stringOfSentence,
             fileName: fileName,
-            scores: 0
+            translation: translation,
+            scores: 0,
         };
         let stringsOfwords = stringOfSentence.split(" "); // делим фразу на массив из слов
 
@@ -139,6 +148,12 @@ class SentenceStorgae {
 
 
 let storage = new SentenceStorgae();
+
+let fileContent = fs.readFileSync("sentences.json", "utf8");
+storage.sentences = JSON.parse(fileContent);
+fileContent = fs.readFileSync("words.json", "utf8");
+storage.words = JSON.parse(fileContent);
+
 
 const corsOptions = {
     origin: "*", // домен сервиса, с которого будут приниматься запросы
