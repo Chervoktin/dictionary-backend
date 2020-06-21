@@ -2,8 +2,19 @@ var cors = require("cors");
 var express = require("express");
 var app = express();
 var multer = require("multer");
-const upload = multer({dest: "uploads/"});
 var fs = require("fs");
+
+var str = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'examples/');
+    },
+    filename: function (req, file, cb) {
+        let ext = file.originalname.substring(file.originalname.lastIndexOf('.'), file.originalname.length);
+        cb(null, Date.now() + ext);
+    }
+})
+
+var upload = multer({ storage: str });
 
 class SentenceStorgae {
     idSentencesIncrement = 0;
@@ -19,23 +30,14 @@ class SentenceStorgae {
         this.words = JSON.parse(fileContent);
     }
 
-    _bindSentenceToWord(stringOfword, objectOfSentence) {
-        let binded = false;
-        this.words.forEach(objectOfWord => {
-            if (objectOfWord.word === stringOfword) {
-                objectOfSentence.scores += objectOfWord.scores;
-                objectOfWord.sentences.push(objectOfSentence);
-                binded = true;
+    _findWord(word) {
+        let findingWord = null;
+        this.words.forEach(element => {
+            if (word === element.word) {
+                findingWord = element;
             }
         })
-        if (!binded) {
-            this.words.push({
-                id: this.idWordsIncrement++,
-                word: stringOfword,
-                sentences: [objectOfSentence],
-                scores: 0,
-            })
-        }
+        return findingWord;
     }
 
     insert(stringOfSentence, fileName) {
@@ -45,15 +47,22 @@ class SentenceStorgae {
             fileName: fileName,
             scores: 0
         };
-        this.sentences.push(objectOfSentence); // 
         let stringsOfwords = stringOfSentence.split(" "); // делим фразу на массив из слов
 
         let objectOfWord = null;
         stringsOfwords.forEach(stringOfWord => {
-            // к каждому объекту word из массива words добавляем ссылку на sentence
-            this._bindSentenceToWord(stringOfWord, objectOfSentence);
+            let word = this._findWord(stringOfWord);
+            if (word === null) {
+                this.words.push({
+                    id: this.idWordsIncrement++,
+                    word: stringOfWord,
+                    scores: 0,
+                })
+            } else {
+                objectOfSentence.scores += word.scores;
+            }
         });
-
+        this.sentences.push(objectOfSentence);
         return objectOfSentence.id;
     }
     select(count) {
@@ -73,36 +82,31 @@ class SentenceStorgae {
         return findingSentence;
     }
 
-    _progressForWord(stringOfWord) {
-        this.words.forEach(word => {
-            if (word.word === stringOfWord) {
-                word.scores += 1;
-                word.sentences.forEach(sentence => {
+    _progressForWord(word) {
+        this.sentences.forEach(sentence => {
+            let words = sentence.sentence.split(" ");
+            words.forEach(element => {
+                let findingWord = this._findWord(element);
+                if (findingWord.word === word) {
+                    findingWord.scores += 1;
                     sentence.scores += 1;
-                })
-            }
+                }
+            })
         })
     }
 
-    _decrementScores(word) {
-        if (word.scores > 0) {
-            word.scores -= 1;
-        }
-        word.sentences.forEach(sentence => {
-            if (sentence.scores > 0) {
-                sentence.scores -= 1;
-            }
-        });
-    }
-
-    _regressForWord(stringOfWord) {
-        this.words.forEach(word => {
-            if (word.word === stringOfWord) {
-                this._decrementScores(word);
-            }
+    _regressForWord(word) {
+        this.sentences.forEach(sentence => {
+            let words = sentence.sentence.split(" ");
+            words.forEach(element => {
+                let findingWord = this._findWord(element);
+                if (findingWord.word === word) {
+                    findingWord.scores -= 1;
+                    sentence.scores -= 1;
+                }
+            })
         })
     }
-
     progress(id) {
         let objectOfSentence = this.getById(id);
         if (objectOfSentence !== null) {
@@ -119,10 +123,12 @@ class SentenceStorgae {
     regress(id) {
         let objectOfSentence = this.getById(id);
         if (objectOfSentence !== null) {
-            let words = objectOfSentence.sentence.split(" ");
-            words.forEach(stringOfWord => {
-                this._regressForWord(stringOfWord);
-            });
+            if (objectOfSentence.scores > 0) {
+                let words = objectOfSentence.sentence.split(" ");
+                words.forEach(stringOfWord => {
+                    this._regressForWord(stringOfWord);
+                });
+            }
             return true;
         } else {
             return false;
@@ -130,8 +136,9 @@ class SentenceStorgae {
     }
 }
 
-let storage = new SentenceStorgae();
 
+
+let storage = new SentenceStorgae();
 
 const corsOptions = {
     origin: "*", // домен сервиса, с которого будут приниматься запросы
@@ -140,14 +147,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json())
-app.use(express.urlencoded({extended: false}))
+app.use(express.urlencoded({ extended: false }))
 
 app.post('/sentence', upload.single('example'), function (req, res) {
-    console.log(req.file);
-    console.log(req.body.sentence);
-    //let id = storage.insert(req.body.sentence, req.body.example);
+    let id = storage.insert(req.body.sentence, req.file.filename);
     res.status(201);
-  //  res.setHeader("Location", "/sentence/" + id)
+    res.setHeader("Location", "/sentence/" + id)
     res.end();
 })
 
