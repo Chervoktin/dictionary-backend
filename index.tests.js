@@ -1,5 +1,17 @@
 let app = require("./index.js");
 
+it("should calculate scroes in new sentence", function () {
+    let storage = new app.SentenceStorgae();
+    let id = storage.insert("the war was lost");
+    storage.progress(id);
+    id = storage.insert("apple was good");
+    let result = storage.getById(id).scores;
+    let expectedResult = 1;
+    if (result !== expectedResult) {
+        throw new Error(`Expected ${expectedResult}, but got ${result}`);
+    }
+});
+
 it("should insert sentence 'the war was lost'", function () {
     let storage = new app.SentenceStorgae();
     let id = storage.insert("the war was lost");
