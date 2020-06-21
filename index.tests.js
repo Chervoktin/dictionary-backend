@@ -12,15 +12,25 @@ it("should calculate scroes in new sentence", function () {
     }
 });
 
-it("should insert sentence 'the war was lost'", function () {
+it("should insert sentence 'the war was lost and 'apple was good'", function () {
     let storage = new app.SentenceStorgae();
     let id = storage.insert("the war was lost");
-    let result = storage.getById(id).sentence;;
+    let id2 = storage.insert("apple was good");
+    let result = storage.getById(id).sentence;
     let expectedResult = "the war was lost";
+    
+    if (result !== expectedResult) {
+        throw new Error(`Expected ${expectedResult}, but got ${result}`);
+    }
+     
+     result = storage.getById(id2).scores;
+     expectedResult = 0;
     if (result !== expectedResult) {
         throw new Error(`Expected ${expectedResult}, but got ${result}`);
     }
 });
+
+
 
 it("should select sentence 'the war was lost' and 'i like apples", function () {
     let storage = new app.SentenceStorgae();
@@ -42,7 +52,7 @@ it("should select sentence 'the war was lost' and 'i like apples", function () {
     }
 });
 
-it("should calculate scores", function () {
+it("should calculate progress", function () {
     let storage = new app.SentenceStorgae();
     let id = storage.insert("the war was lost");
     storage.progress(id);
@@ -65,14 +75,14 @@ it("should calculate related from words scores", function () {
    
     let expectedResult = 1;
     let result = sentence.scores;
-
+    
     if (result !== expectedResult ) {
         throw new Error(`Expected ${expectedResult}, but got ${result}`);
     }
     
 });
 
-it("should decrement scores when scores", function () {
+it("should calculate regress", function () {
     let storage = new app.SentenceStorgae();
     let id = storage.insert("the war was lost");
     storage.progress(id);
