@@ -7,7 +7,8 @@ const { throws } = require("assert");
 
 var str = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'examples/');
+        let dir = 'examples/';
+        fs.mkdir(dir, err => cb(err, dir));
     },
     filename: function (req, file, cb) {
         let ext = file.originalname.substring(file.originalname.lastIndexOf('.'), file.originalname.length);
@@ -150,7 +151,6 @@ class SentenceStorgae {
 let storage = new SentenceStorgae();
 if (fs.existsSync("sentences.json")) {
     let fileContent = fs.readFileSync("sentences.json", "utf8");
-    console.log(fileContent);
     storage.sentences = JSON.parse(fileContent);
     fileContent = fs.readFileSync("words.json", "utf8");
     storage.words = JSON.parse(fileContent);
