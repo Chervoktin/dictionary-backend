@@ -25,16 +25,16 @@ class SentenceStorgae {
     words = [];
 
     constructor() {
-         if(this.sentences.length === 0){
-             this.idSentencesIncrement = 0;
-         }    else{
-             this.idSentencesIncrement = this.sentences[this.sentences.length-1].id + 1;
-         }
+        if (this.sentences.length === 0) {
+            this.idSentencesIncrement = 0;
+        } else {
+            this.idSentencesIncrement = this.sentences[this.sentences.length - 1].id + 1;
+        }
 
-         if(this.words.length === 0){
+        if (this.words.length === 0) {
             this.idWordsIncrement = 0;
-        }    else{
-            this.idWordsIncrement = this.words[this.words.length-1].id + 1;
+        } else {
+            this.idWordsIncrement = this.words[this.words.length - 1].id + 1;
         }
     }
 
@@ -148,11 +148,14 @@ class SentenceStorgae {
 
 
 let storage = new SentenceStorgae();
+if (fs.existsSync("sentences.json")) {
+    let fileContent = fs.readFileSync("sentences.json", "utf8");
+    console.log(fileContent);
+    storage.sentences = JSON.parse(fileContent);
+    fileContent = fs.readFileSync("words.json", "utf8");
+    storage.words = JSON.parse(fileContent);
+}
 
-let fileContent = fs.readFileSync("sentences.json", "utf8");
-storage.sentences = JSON.parse(fileContent);
-fileContent = fs.readFileSync("words.json", "utf8");
-storage.words = JSON.parse(fileContent);
 
 
 const corsOptions = {
