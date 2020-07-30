@@ -8,7 +8,16 @@ const { throws } = require("assert");
 var str = multer.diskStorage({
     destination: function (req, file, cb) {
         let dir = 'examples/';
-        fs.mkdir(dir, err => cb(err, dir));
+
+        fs.exists(dir, (exists) => {
+            if (!exists) {
+                fs.mkdir(dir, err => cb(err, dir));
+            } else {
+                cb(null, dir);
+            }
+        });
+
+
     },
     filename: function (req, file, cb) {
         let ext = file.originalname.substring(file.originalname.lastIndexOf('.'), file.originalname.length);
