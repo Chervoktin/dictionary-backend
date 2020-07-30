@@ -214,6 +214,19 @@ app.get('/training/:count', function (req, res) {
     res.end(JSON.stringify(storage.select(req.params.count)));
 })
 
+app.get('/word/', function (req, res) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    let words = storage.words;
+    if (words === null) {
+        res.status(404);
+        res.end();
+    } else {
+        res.status(200);
+        res.end(JSON.stringify(words));
+    }
+})
+
 app.get('/sentence/:id', function (req, res) {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.setHeader("Pragma", "no-cache");
