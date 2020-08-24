@@ -4,6 +4,7 @@ var app = express();
 var multer = require("multer");
 var fs = require("fs");
 const { throws } = require("assert");
+const { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } = require("constants");
 
 var str = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -104,26 +105,30 @@ class SentenceStorgae {
     _progressForWord(word) {
         this.sentences.forEach(sentence => {
             let words = sentence.sentence.split(" ");
-            words.forEach(element => {
+            for(let i = 0; i < words.length; i++){
+                let element = words[i];
                 let findingWord = this._findWord(element);
                 if (findingWord.word === word) {
                     findingWord.scores += 1;
                     sentence.scores += 1;
+                    return 0;
                 }
-            })
+            }
         })
     }
 
     _regressForWord(word) {
         this.sentences.forEach(sentence => {
             let words = sentence.sentence.split(" ");
-            words.forEach(element => {
+            for(let i = 0; i < words.length; i++){
+                let element = words[i];
                 let findingWord = this._findWord(element);
                 if (findingWord.word === word) {
                     findingWord.scores -= 1;
                     sentence.scores -= 1;
+                    return 0;
                 }
-            })
+            }
         })
     }
     progress(id) {
